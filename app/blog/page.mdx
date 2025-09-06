@@ -1,0 +1,35 @@
+export const metadata = {
+  title: "Blog — Integrius",
+  description: "Artigos sobre automação, WhatsApp e inteligência aplicada."
+}
+
+# 🚀 Como a automação pode transformar o seu atendimento
+
+A automação inteligente já não é mais luxo — é **necessidade** para empresas que querem escalar atendimento sem perder qualidade.
+
+## ✨ Benefícios principais
+
+1. **Redução de no-shows** com confirmações automáticas via WhatsApp.  
+2. **Agilidade** na resposta ao cliente.  
+3. **Relatórios inteligentes** para tomada de decisão.  
+
+---
+
+## 🛠️ Exemplo prático com cURL
+
+Integração simples de webhook com o **Integrius**:
+
+```bash
+curl -X POST $WHATSAPP_WEBHOOK_URL \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": "site",
+    "event": "lead",
+    "payload": {
+      "name": "Exemplo",
+      "phone": "+55...",
+      "email": "a@b.com",
+      "message": "Quero saber mais sobre o 10eQuinze",
+      "product": "10equinze"
+    }
+  }'
