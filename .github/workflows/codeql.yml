@@ -1,0 +1,39 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: "0 1 * * 1"  # segundas 01:00 UTC
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+
+    # estas permissões são necessárias para publicar resultados de segurança
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript' ]  # pode adicionar 'typescript' se quiser
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      # para projetos Node/JS, o autobuild costuma bastar
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
