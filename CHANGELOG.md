@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/HansDohm/integrius-site/compare/v1.2.0...v1.2.1) (2025-09-08)
+
+### Bug Fixes
+
+* corrigir sintaxe do workflow de teste ([5309f95](https://github.com/HansDohm/integrius-site/commit/5309f956baa715fdd0a09fe05be19ea255fc57f1))
+
 ## [1.2.0](https://github.com/HansDohm/integrius-site/compare/v1.1.0...v1.2.0) (2025-09-08)
 
 ### Features
