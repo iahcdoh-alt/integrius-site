@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/HansDohm/integrius-site/compare/v1.1.0...v1.2.0) (2025-09-08)
+
+### Features
+
+* adicionar pipeline CI/CD completo ([694bd27](https://github.com/HansDohm/integrius-site/commit/694bd275dbb3d483b54dce2203035256e3a19ee0))
+
 ## [1.1.0](https://github.com/HansDohm/integrius-site/compare/v1.0.1...v1.1.0) (2025-09-08)
 
 ### Features
