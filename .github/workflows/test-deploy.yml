@@ -9,6 +9,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - run: echo "Branch is ${{ github.ref }}"
-    - run: echo "Secrets exist - ORG: ${{ secrets.VERCEL_ORG_ID != '' }}"
-    - run: echo "Secrets exist - PROJECT: ${{ secrets.VERCEL_PROJECT_ID != '' }}"
-    - run: echo "Secrets exist - TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}"
+    - run: echo "Secrets exist - ORG ${{ secrets.VERCEL_ORG_ID != '' }}"
+    - run: echo "Secrets exist - PROJECT ${{ secrets.VERCEL_PROJECT_ID != '' }}"
+    - run: echo "Secrets exist - TOKEN ${{ secrets.VERCEL_TOKEN != '' }}"
