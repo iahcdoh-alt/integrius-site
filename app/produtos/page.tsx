@@ -9,12 +9,16 @@ export default function ProdutosPage() {
         <Card className="p-6">
           <h3 className="text-xl font-semibold">Agendador 10eQuinze</h3>
           <p className="mt-2 text-sm text-muted">Automação de agendamentos para saúde.</p>
-          <Link href="/produtos/10equinze" className="mt-4 inline-block text-primary underline">Explorar</Link>
+          <Link href="/produtos/10equinze" className="mt-4 inline-block text-primary underline">
+            Explorar
+          </Link>
         </Card>
         <Card className="p-6">
           <h3 className="text-xl font-semibold">Agendador MSA</h3>
           <p className="mt-2 text-sm text-muted">Micro-SaaS de agendamentos para PMEs.</p>
-          <Link href="/produtos/msa" className="mt-4 inline-block text-primary underline">Explorar</Link>
+          <Link href="/produtos/msa" className="mt-4 inline-block text-primary underline">
+            Explorar
+          </Link>
         </Card>
       </div>
     </section>

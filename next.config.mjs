@@ -4,12 +4,12 @@ import createMDX from '@next/mdx'
 const withMDX = createMDX({
   extension: /\.mdx?$/,
   // 👇 desativa a injeção do @mdx-js/react (evita a exigência de "use client")
-  options: { providerImportSource: undefined }
+  options: { providerImportSource: undefined },
 })
 
 const securityHeaders = [
   {
-    key: "Content-Security-Policy",
+    key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
@@ -19,13 +19,13 @@ const securityHeaders = [
       "connect-src 'self' https: http:",
       "frame-ancestors 'none'",
       "base-uri 'self'",
-      "form-action 'self'"
-    ].join('; ')
+      "form-action 'self'",
+    ].join('; '),
   },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "geolocation=(), microphone=(), camera=()" }
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'geolocation=(), microphone=(), camera=()' },
 ]
 
 const config = {
@@ -34,11 +34,11 @@ const config = {
   async headers() {
     return [
       {
-        source: "/(.*)",
-        headers: securityHeaders
-      }
+        source: '/(.*)',
+        headers: securityHeaders,
+      },
     ]
-  }
+  },
 }
 
 export default withMDX(config)

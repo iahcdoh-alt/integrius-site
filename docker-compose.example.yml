@@ -3,7 +3,7 @@ services:
     build: .
     image: integrius/site:latest
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NEXT_PUBLIC_SITE_URL=https://integrius.com.br
       - WHATSAPP_WEBHOOK_URL=https://example.com/webhook

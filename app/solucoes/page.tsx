@@ -4,7 +4,7 @@ export default function SolucoesPage() {
   const items = [
     { title: 'Clínicas', desc: 'Agendamentos confiáveis e redução de faltas.' },
     { title: 'Consultórios', desc: 'Fluxos simples e integrados ao WhatsApp.' },
-    { title: 'PMEs', desc: 'Automação que libera sua equipe.' }
+    { title: 'PMEs', desc: 'Automação que libera sua equipe.' },
   ]
   return (
     <section className="container py-12">

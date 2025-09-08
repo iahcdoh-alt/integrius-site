@@ -8,11 +8,18 @@ export default function Hero() {
         Automação que dá <span className="text-primary">escala</span> ao seu atendimento
       </h1>
       <p className="max-w-2xl text-lg text-muted">
-        Agende e confirme consultas pelo WhatsApp e web. Reduza no-shows, libere sua equipe e encante pacientes.
+        Agende e confirme consultas pelo WhatsApp e web. Reduza no-shows, libere sua equipe e
+        encante pacientes.
       </p>
       <div className="flex gap-3">
-        <Link href="/precos"><Button size="lg">Começar agora</Button></Link>
-        <Link href="/contato"><Button variant="secondary" size="lg">Solicitar demo</Button></Link>
+        <Link href="/precos">
+          <Button size="lg">Começar agora</Button>
+        </Link>
+        <Link href="/contato">
+          <Button variant="secondary" size="lg">
+            Solicitar demo
+          </Button>
+        </Link>
       </div>
     </section>
   )

@@ -21,16 +21,21 @@ export default function HomePage() {
         <Card className="p-6">
           <h3 className="text-xl font-semibold">Agendador 10eQuinze</h3>
           <p className="mt-2 text-sm text-muted">
-            Foco em clínicas e consultórios. Confirmações automáticas, lembretes e troca/cancelamento simples.
+            Foco em clínicas e consultórios. Confirmações automáticas, lembretes e
+            troca/cancelamento simples.
           </p>
-          <Link className="mt-4 inline-block text-primary underline" href="/produtos/10equinze">Ver mais</Link>
+          <Link className="mt-4 inline-block text-primary underline" href="/produtos/10equinze">
+            Ver mais
+          </Link>
         </Card>
         <Card className="p-6">
           <h3 className="text-xl font-semibold">Agendador MSA</h3>
           <p className="mt-2 text-sm text-muted">
             Micro-SaaS de agendamentos e automações para PMEs. Simples, rápido e escalável.
           </p>
-          <Link className="mt-4 inline-block text-primary underline" href="/produtos/msa">Ver mais</Link>
+          <Link className="mt-4 inline-block text-primary underline" href="/produtos/msa">
+            Ver mais
+          </Link>
         </Card>
       </section>
       <Pricing />

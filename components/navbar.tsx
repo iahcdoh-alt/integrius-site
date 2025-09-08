@@ -1,5 +1,5 @@
-import Image from "next/image"
-import Link from "next/link"
+import Image from 'next/image'
+import Link from 'next/link'
 
 export default function Navbar() {
   return (
@@ -26,13 +26,7 @@ export default function Navbar() {
       {/* Logo centralizada abaixo */}
       <div className="w-full py-6 flex justify-center">
         <Link href="/">
-          <Image
-            src="/logo-integrius.svg"
-            alt="Integrius"
-            width={100}
-            height={60}
-            priority
-          />
+          <Image src="/logo-integrius.svg" alt="Integrius" width={100} height={60} priority />
         </Link>
       </div>
     </header>

@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ['main']
 
 permissions:
   contents: write
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # importante para semantic-release ver histórico de tags
+          fetch-depth: 0 # importante para semantic-release ver histórico de tags
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
