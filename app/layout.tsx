@@ -1,12 +1,15 @@
+// src/app/layout.tsx
 import './globals.css'
 import type { Metadata } from 'next'
-import Navbar from '@/components/navbar' // <-- sem chaves
+import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
 
 export const metadata: Metadata = {
-  title: 'Integrius — Automação de atendimento e inteligência aplicada',
+  metadataBase: new URL('https://integrius.com.br'),   // 👈 base para canonical, sitemap etc.
+  title: 'Integríus – Automação de atendimento e inteligência aplicada',
   description:
     'Agendador 10eQuinze e Agendador MSA: automação inteligente de atendimentos no WhatsApp e web.',
+  alternates: { canonical: '/' },                      // 👈 canonical vira https://integrius.com.br/rota
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
