@@ -12,7 +12,7 @@ export default function HomePage() {
           <Card key={f} className="p-6">
             <h3 className="text-xl font-semibold">{f}</h3>
             <p className="mt-2 text-sm text-muted">
-              Automação inteligente para reduzir faltas, acelerar respostas e aumentar conversões e trabalho.
+              Automação inteligente para reduzir faltas, acelerar respostas e aumentar conversões.
             </p>
           </Card>
         ))}
