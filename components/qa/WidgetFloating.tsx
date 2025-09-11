@@ -3,10 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Position = "br" | "bl"; // bottom-right | bottom-left
-type Msg = { role: "user" | "assistant"; content: string; sources?: string[]; lowConfidence?: boolean };
 
-const WA = typeof window !== "undefined" ? process.env.NEXT_PUBLIC_WHATSAPP_NUMBER : undefined;
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  sources?: string[];
+  lowConfidence?: boolean;
+};
 
+// 💬 Balão de mensagem
 function Bubble({ role, children }: { role: "user" | "assistant"; children: React.ReactNode }) {
   const isUser = role === "user";
   return (
@@ -22,6 +27,7 @@ function Bubble({ role, children }: { role: "user" | "assistant"; children: Reac
   );
 }
 
+// 📎 Lista de fontes
 function Sources({ items }: { items?: string[] }) {
   if (!items?.length) return null;
   return (
@@ -53,8 +59,9 @@ export default function WidgetFloating({
 
   const posClass = position === "bl" ? "left-6" : "right-6";
   const widthClass = size === 420 ? "w-[420px]" : "w-[320px]";
+
   const waHref = useMemo(() => {
-    const n = WA || "5524XXXXXXXXX";
+    const n = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "5524XXXXXXXXX";
     const text = encodeURIComponent("Olá! Tenho uma dúvida sobre os produtos Integrius.");
     return `https://wa.me/${n}?text=${text}`;
   }, []);
@@ -68,7 +75,7 @@ export default function WidgetFloating({
     setTimeout(() => {
       setOpen(false);
       setIsClosing(false);
-    }, 250); // 200–300ms
+    }, 250); // fade/slide out
   }
 
   async function send() {
@@ -86,22 +93,28 @@ export default function WidgetFloating({
       const data = await r.json();
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: data.answer ?? "Não consegui responder agora.", sources: data.sources, lowConfidence: data.lowConfidence },
+        {
+          role: "assistant",
+          content: data?.answer ?? "Não consegui responder agora.",
+          sources: data?.sources,
+          lowConfidence: data?.lowConfidence,
+        },
       ]);
-    } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "Falha ao processar a pergunta. Tente novamente." }]);
+    } catch (e) {
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: "Falha ao processar a pergunta. Tente novamente." },
+      ]);
     } finally {
       setSending(false);
     }
   }
 
+  // Auto-focus ao abrir
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
-    const el = containerRef.current;
-    if (!el) return;
-    // focus no input ao abrir
-    const inputEl = el.querySelector("input") as HTMLInputElement | null;
+    const inputEl = containerRef.current?.querySelector("input") as HTMLInputElement | null;
     inputEl?.focus();
   }, [open]);
 
@@ -158,7 +171,12 @@ export default function WidgetFloating({
                 {m.lowConfidence && (
                   <div className="text-xs mt-2">
                     Não encontrou o que precisava?{" "}
-                    <a className="underline text-blue-600 dark:text-blue-400" href={waHref} target="_blank" rel="noreferrer">
+                    <a
+                      className="underline text-blue-600 dark:text-blue-400"
+                      href={waHref}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       Fale no WhatsApp
                     </a>
                   </div>
@@ -168,14 +186,14 @@ export default function WidgetFloating({
           </div>
 
           {/* Footer */}
-          <div className={`p-2 border-t border-gray-200 dark:border-slate-700 flex gap-2`}>
+          <div className="p-2 border-t border-gray-200 dark:border-slate-700 flex gap-2">
             <input
               type="text"
               placeholder="Digite sua pergunta…"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
-              className="flex-1 border rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800"
+              className="flex-1 border rounded-lg px-2 py-2 text-sm focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400 caret-blue-600"
             />
             <button
               onClick={send}
