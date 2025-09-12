@@ -1,9 +1,10 @@
 // src/app/layout.tsx
+//<WidgetFloating position="br" size={320} compactHeader />
 import "./globals.css";
 import type { Metadata } from "next";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-//import WidgetFloating from "@/components/qa/WidgetFloating";
+import WidgetFloating from "@/components/qa/WidgetFloating";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://integrius.com.br"),
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main>{children}</main>
         <Footer />
         {/* Widget flutuante disponível em todo o site */}
-        <WidgetFloating position="br" size={320} compactHeader />
+        <WidgetFloating position="bottom-right" />
       </body>
     </html>
   );
