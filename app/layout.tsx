@@ -3,7 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import WidgetFloating from "@/components/qa/WidgetFloating";
+//import WidgetFloating from "@/components/qa/WidgetFloating";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://integrius.com.br"),
