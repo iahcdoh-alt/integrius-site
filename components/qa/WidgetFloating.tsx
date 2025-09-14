@@ -14,9 +14,9 @@ const CONFIG = {
     'Diana', 'Fernanda', 'Gabriela', 'Helena', 'Isabela'
   ],
   timing: {
-    welcomeToAssistant: 5000,
-    inactivityWarning: 180000,
-    inactivityTimeout: 240000,
+    welcomeToAssistant: 5000,    // 5 segundos
+    inactivityWarning: 180000,   // 3 minutos
+    inactivityTimeout: 60000,    // 1 minuto adicional após aviso
     typingDelay: 1500,
   },
   messages: {
@@ -28,6 +28,12 @@ const CONFIG = {
   priceKeywords: [
     'preço', 'precos', 'valor', 'valores', 'custo', 'custos',
     'investimento', 'orçamento', 'orcamento', 'quanto custa'
+  ],
+  farewellKeywords: [
+    'não', 'nao', 'obrigado', 'obrigada', 'tchau', 'até logo', 'ate logo',
+    'só isso', 'so isso', 'é só', 'eh so', 'nada mais', 'finalizar',
+    'encerrar', 'sair', 'fechar', 'dispensar', 'pode fechar',
+    'não preciso', 'nao preciso', 'não quero', 'nao quero'
   ],
   colors: {
     primary: '#0066CC',
@@ -76,12 +82,19 @@ const getRandomAssistantName = (): string => {
 
 const containsPriceKeywords = (text: string): boolean => {
   const lowerText = text.toLowerCase();
-  return CONFIG.priceKeywords.some((keyword: string) => 
+  return CONFIG.priceKeywords.some((keyword: string) =>
     lowerText.includes(keyword)
   );
 };
 
-const getAssistantGreeting = (name: string): string => 
+const containsFarewellKeywords = (text: string): boolean => {
+  const lowerText = text.toLowerCase();
+  return CONFIG.farewellKeywords.some((keyword: string) =>
+    lowerText.includes(keyword)
+  );
+};
+
+const getAssistantGreeting = (name: string): string =>
   `Oi! Eu sou a ${name}, sua atendente virtual da Integrius. Como posso ajudar você hoje?`;
 
 export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloatingProps) {
@@ -91,7 +104,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
   const [isTyping, setIsTyping] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [leadForm, setLeadForm] = useState<LeadFormData>({ name: '', phone: '', email: '' });
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -103,27 +116,6 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     'top-right': 'top-6 right-6',
     'top-left': 'top-6 left-6',
   };
-
-  // Resetar timers de inatividade
-  const resetInactivityTimer = useCallback(() => {
-    if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-
-    if (session?.state === 'active') {
-      // Timer de aviso (3 minutos)
-      warningTimerRef.current = setTimeout(() => {
-        addSystemMessage(CONFIG.messages.inactivityWarning);
-        setSession((prev) => prev ? { ...prev, state: 'warning' } : null);
-      }, CONFIG.timing.inactivityWarning);
-
-      // Timer de timeout (4 minutos)
-      inactivityTimerRef.current = setTimeout(() => {
-        addSystemMessage(CONFIG.messages.timeout);
-        setSession((prev) => prev ? { ...prev, state: 'timeout' } : null);
-        setTimeout(() => setIsOpen(false), 3000);
-      }, CONFIG.timing.inactivityTimeout);
-    }
-  }, [session?.state]);
 
   // Adicionar mensagem do sistema
   const addSystemMessage = useCallback((text: string, type: Message['type'] = 'system') => {
@@ -142,6 +134,48 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     } : null);
   }, []);
 
+  // Resetar timers de inatividade
+  const resetInactivityTimer = useCallback(() => {
+    console.log('🔄 Resetando timer, estado atual:', session?.state);
+    
+    // Limpar timers existentes
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+      console.log('🗑️ Timer de timeout limpo');
+    }
+    if (warningTimerRef.current) {
+      clearTimeout(warningTimerRef.current);
+      warningTimerRef.current = null;
+      console.log('🗑️ Timer de aviso limpo');
+    }
+
+    // Criar novos timers apenas se sessão estiver ativa
+    if (session?.state === 'active') {
+      console.log('⏰ Criando timer de aviso (10 segundos)');
+      
+      // Timer de aviso (10 segundos para teste)
+      warningTimerRef.current = setTimeout(() => {
+        console.log('⚠️ AVISO: 10 segundos passaram - mostrando aviso');
+        addSystemMessage(CONFIG.messages.inactivityWarning);
+        setSession((prev) => prev ? { ...prev, state: 'warning' } : null);
+        
+        console.log('⏰ Criando timer de timeout (5 segundos após aviso)');
+        // Timer de timeout (5 segundos adicional após aviso)
+        inactivityTimerRef.current = setTimeout(() => {
+          console.log('💥 TIMEOUT: 15 segundos total - desconectando!');
+          addSystemMessage(CONFIG.messages.timeout);
+          setSession((prev) => prev ? { ...prev, state: 'timeout' } : null);
+          setTimeout(() => {
+            console.log('👋 Fechando widget');
+            setIsOpen(false);
+          }, 3000);
+        }, CONFIG.timing.inactivityTimeout);
+        
+      }, CONFIG.timing.inactivityWarning);
+    }
+  }, [session?.state, addSystemMessage]);
+
   // Adicionar mensagem do usuário
   const addUserMessage = useCallback((text: string) => {
     const message: Message = {
@@ -155,7 +189,8 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     setSession((prev) => prev ? {
       ...prev,
       messages: [...prev.messages, message],
-      lastActivity: new Date()
+      lastActivity: new Date(),
+      state: 'active' // Voltar para ativo se estava em warning
     } : null);
 
     resetInactivityTimer();
@@ -167,6 +202,26 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
 
     setTimeout(() => {
       setIsTyping(false);
+
+      // Verificar se é despedida
+      if (containsFarewellKeywords(userMessage)) {
+        const farewellResponses = [
+          'Foi um prazer atender você! Se precisar de mais alguma coisa sobre a Integrius, estarei sempre aqui. Tenha um ótimo dia!',
+          'Obrigada pelo contato! Fico feliz em ter ajudado. Até a próxima!',
+          'Que bom que pude ajudar! Se surgir alguma dúvida sobre nossos serviços, é só voltar aqui. Até logo!',
+          'Perfeito! Foi um prazer conversar com você. A Integrius está sempre à disposição. Até mais!'
+        ];
+        
+        const randomFarewell = farewellResponses[Math.floor(Math.random() * farewellResponses.length)];
+        addSystemMessage(randomFarewell, 'assistant');
+        
+        // Finalizar sessão após 3 segundos
+        setTimeout(() => {
+          setSession((prev) => prev ? { ...prev, state: 'ended' } : null);
+          setTimeout(() => setIsOpen(false), 2000);
+        }, 3000);
+        return;
+      }
 
       // Verificar se é pergunta sobre preços
       if (containsPriceKeywords(userMessage)) {
@@ -180,7 +235,9 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
         'Obrigada por sua pergunta! A Integrius é especializada em automação inteligente com IA.',
         'Desenvolvemos soluções personalizadas com n8n e tecnologias modernas como Node.js e React.',
         'Nossos serviços incluem automação de processos, desenvolvimento de sites e integração com IA.',
-        'Ficou com alguma dúvida específica sobre nossos serviços?'
+        'Ficou com alguma dúvida específica sobre nossos serviços?',
+        'Posso te ajudar com informações sobre automação, desenvolvimento de sites ou nossa tecnologia!',
+        'A Integrius une IA com as melhores tecnologias do mercado. O que gostaria de saber?'
       ];
 
       const randomResponse = responses[Math.floor(Math.random() * responses.length)];
@@ -242,12 +299,13 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
   // Enviar mensagem
   const handleSendMessage = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!inputText.trim() || !session || session.state !== 'active') return;
+
+    if (!inputText.trim() || !session) return;
+    if (session.state !== 'active' && session.state !== 'warning') return;
 
     const messageText = inputText.trim();
     setInputText('');
-    
+
     addUserMessage(messageText);
     simulateAssistantResponse(messageText);
   }, [inputText, session, addUserMessage, simulateAssistantResponse]);
@@ -255,18 +313,17 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
   // Enviar dados de lead
   const handleLeadSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!leadForm.name || (!leadForm.phone && !leadForm.email)) {
       alert('Por favor, preencha pelo menos nome e telefone ou email.');
       return;
     }
 
-    // Aqui será integrada a API de leads
     console.log('Lead capturado:', leadForm);
-    
+
     setShowLeadForm(false);
     setSession((prev) => prev ? { ...prev, leadCaptured: true } : null);
-    
+
     addSystemMessage(
       `Obrigada, ${leadForm.name}! Nossos especialistas entrarão em contato em breve. ` +
       `Posso ajudar com mais alguma coisa sobre a Integrius?`,
@@ -288,10 +345,12 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     }
 
     return () => {
-      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+      if (inactivityTimerRef.current) {
+        clearInterval(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
     };
-  }, [session?.state, resetInactivityTimer]);
+  }, [session?.state]);
 
   return (
     <>
@@ -322,15 +381,15 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
           }}
           aria-label="Abrir chat de suporte"
         >
-          <svg 
-            width="24" 
-            height="24" 
-            viewBox="0 0 24 24" 
-            fill="none" 
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
             style={{ margin: 'auto', display: 'block' }}
           >
-            <path 
-              d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" 
+            <path
+              d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z"
               fill="white"
             />
             <circle cx="8" cy="10" r="1.5" fill={CONFIG.colors.primary} />
@@ -342,7 +401,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
 
       {/* Janela do chat */}
       {isOpen && session && (
-        <div 
+        <div
           className={`fixed ${positionClasses[position]} z-50`}
           style={{
             width: '380px',
@@ -356,7 +415,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
           }}
         >
           {/* Header */}
-          <div 
+          <div
             style={{
               backgroundColor: CONFIG.colors.primary,
               color: 'white',
@@ -471,8 +530,8 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
                     borderRadius: '12px',
                     fontSize: '14px',
                     lineHeight: '1.4',
-                    backgroundColor: message.isUser 
-                      ? CONFIG.colors.primary 
+                    backgroundColor: message.isUser
+                      ? CONFIG.colors.primary
                       : '#f1f3f4',
                     color: message.isUser ? 'white' : CONFIG.colors.text,
                   }}
@@ -540,7 +599,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M15.854.146a.5.5 0 01.11.54l-5.819 14.547a.75.75 0 01-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 01.124-1.33L15.314.037a.5.5 0 01.54.11z"/>
+                    <path d="M15.854.146a.5.5 0 01.11.54l-5.819 14.547a.75.75 0 01-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 01.124-1.33L15.314.037a.5.5 0 01.54.11z" />
                   </svg>
                 </button>
               </form>
@@ -549,15 +608,15 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
 
           {/* Mensagem quando chat finalizado */}
           {session.state === 'ended' && (
-            <div style={{ 
-              padding: '16px', 
+            <div style={{
+              padding: '16px',
               borderTop: `1px solid ${CONFIG.colors.border}`,
               textAlign: 'center',
               backgroundColor: '#f8f9fa'
             }}>
-              <p style={{ 
-                margin: 0, 
-                fontSize: '14px', 
+              <p style={{
+                margin: 0,
+                fontSize: '14px',
                 color: CONFIG.colors.textLight,
                 fontStyle: 'italic'
               }}>
