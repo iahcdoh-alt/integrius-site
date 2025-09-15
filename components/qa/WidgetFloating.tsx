@@ -9,7 +9,39 @@ interface WidgetFloatingProps {
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
 }
 
-/** Config mínima (cores e textos) */
+/* ======================
+   helpers de normalização e despedida
+   ====================== */
+const normalize = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .trim();
+
+const FAREWELL_KEYWORDS = [
+  'obrigado', 'obrigada', 'obg', 'brigado', 'valeu',
+  'tchau', 'ate logo', 'até logo', 'encerrar', 'finalizar',
+  'pode fechar', 'nao preciso', 'não preciso', 'nao quero', 'não quero',
+  'so isso', 'só isso', 'nada mais', 'fechar'
+];
+
+const isFarewell = (text: string) => {
+  const n = normalize(text);
+  return FAREWELL_KEYWORDS.some(k => n.includes(normalize(k)));
+};
+
+const FAREWELL_REPLIES = [
+  'Foi um prazer atender você! Se precisar de algo sobre a Integrius, estarei por aqui. 😊',
+  'Obrigada pelo contato! Qualquer dúvida sobre nossos produtos, é só chamar. 👋',
+  'Que bom poder ajudar! Se surgir algo mais da Integrius, volte quando quiser. 🙌',
+  'Perfeito! A Integrius fica à disposição. Tenha um ótimo dia! ✨',
+];
+
+/* ======================
+   Config (cores, textos, tempos)
+   ====================== */
 const CONFIG = {
   brand: 'Integrius',
   colors: {
@@ -22,16 +54,25 @@ const CONFIG = {
     bubble: '#F1F3F4',
   },
   timings: {
-    typingDelayMs: 250,            // atraso visual antes de mostrar "digitando..."
-    requestTimeoutMs: 25000,       // timeout do fetch
-    reconnectBackoffMs: 900,       // backoff simples para retry
-    welcomeDelayMs: 500,           // atraso para 1a msg
-    handoverDelayMs: 5000,         // “Seu atendimento já vai começar.” → atendente
+    typingDelayMs: 250,
+    requestTimeoutMs: 25000,
+    reconnectBackoffMs: 900,
+    welcomeDelayMs: 500,     // primeira mensagem
+    handoverDelayMs: 5000,   // troca para atendente
+    inactivityWarnMs: 180000,  // 3 min → aviso
+    inactivityCloseMs: 60000,  // +1 min → encerrar
   },
   greetings: {
     welcome: 'Que bom ver você aqui! O seu atendimento já vai começar.',
-    agentName: 'Sofia', // nome feminino brasileiro (fixo p/ consistência)
+    agentName: 'Sofia',
     handover: (name: string) => `Olá, eu sou a ${name}. Em que posso ajudar?`,
+  },
+  inactivity: {
+    warn: 'Você ainda está aí? Se não responder em 1 minuto, vou encerrar nosso atendimento.',
+    end:  'Por inatividade, estou encerrando nosso atendimento. Foi um prazer ajudar! Até logo!',
+  },
+  session: {
+    ended: 'Atendimento finalizado. Sempre que quiser, é só abrir o chat novamente. 👋',
   },
 };
 
@@ -41,10 +82,14 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [bottomOffset, setBottomOffset] = useState(0);
-  const [requeue, setRequeue] = useState<string | null>(null); // última pergunta pendente (p/ reconectar)
+  const [requeue, setRequeue] = useState<string | null>(null); // última pergunta pendente p/ retry
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(false);
+
+  // timers de inatividade
+  const warnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ===== helpers
   const isNarrow = useMemo(() => {
@@ -56,21 +101,55 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     setMsgs(prev => [...prev, { id: `${Date.now()}-${Math.random()}`, role, text, ts: Date.now() }]);
   }, []);
 
-  // ===== bem-vindo + atendente
+  /* ===== Inatividade: limpar / agendar ===== */
+  const clearIdleTimers = useCallback(() => {
+    if (warnTimerRef.current) { clearTimeout(warnTimerRef.current); warnTimerRef.current = null; }
+    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
+  }, []);
+
+  const scheduleIdleTimers = useCallback(() => {
+    clearIdleTimers();
+
+    // Aviso após X min sem interação do usuário
+    warnTimerRef.current = setTimeout(() => {
+      pushMsg('assistant', CONFIG.inactivity.warn);
+    }, CONFIG.timings.inactivityWarnMs);
+
+    // Encerrar 1 min depois do aviso
+    closeTimerRef.current = setTimeout(() => {
+      pushMsg('assistant', CONFIG.inactivity.end);
+      // fecha após um curto intervalo p/ usuário ler
+      setTimeout(() => {
+        setOpen(false);
+        clearIdleTimers();
+      }, 2500);
+    }, CONFIG.timings.inactivityWarnMs + CONFIG.timings.inactivityCloseMs);
+  }, [clearIdleTimers, pushMsg]);
+
+  // Resetar timers quando houver interação do usuário (digitar/enviar)
+  const resetIdleOnUserAction = useCallback(() => {
+    scheduleIdleTimers();
+  }, [scheduleIdleTimers]);
+
+  /* ===== bem-vindo + atendente ===== */
   const startChat = useCallback(() => {
     setOpen(true);
     setMsgs([]);
+    clearIdleTimers();
+
     // mensagem 1 (bem-vindo)
     setTimeout(() => {
       pushMsg('system', CONFIG.greetings.welcome);
       // mensagem 2 (atendente)
       setTimeout(() => {
         pushMsg('assistant', CONFIG.greetings.handover(CONFIG.greetings.agentName));
+        // A partir daqui aguardamos o usuário → liga os timers de inatividade
+        scheduleIdleTimers();
       }, CONFIG.timings.handoverDelayMs);
     }, CONFIG.timings.welcomeDelayMs);
-  }, [pushMsg]);
+  }, [pushMsg, scheduleIdleTimers, clearIdleTimers]);
 
-  // ===== integração com API /api/qa (timeout + retry)
+  /* ===== integração com API /api/qa (timeout + retry) ===== */
   const askAPI = useCallback(async (question: string) => {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), CONFIG.timings.requestTimeoutMs);
@@ -92,6 +171,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     }
   }, []);
 
+  /* ===== envio de mensagem ===== */
   const sendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     const q = input.trim();
@@ -99,6 +179,19 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
 
     setInput('');
     pushMsg('user', q);
+    resetIdleOnUserAction(); // toda mensagem do usuário reseta cronômetro
+
+    // 👉 Despedida: intercepta e não chama a API
+    if (isFarewell(q)) {
+      const reply = FAREWELL_REPLIES[Math.floor(Math.random() * FAREWELL_REPLIES.length)];
+      pushMsg('assistant', reply);
+      // encerra sessão manualmente (limpa timers)
+      clearIdleTimers();
+      setTimeout(() => setOpen(false), 2500);
+      return;
+    }
+
+    // Chamada à IA
     setTyping(true);
     setRequeue(q); // guarda p/ retry automático se cair rede
 
@@ -117,6 +210,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
       if (data?.lowConfidence) {
         pushMsg('assistant', 'Se preferir, posso te encaminhar para nosso WhatsApp para um atendimento humano.');
       }
+      // após resposta da IA, mantemos timers rodando (aguardando próxima interação do usuário)
     } catch {
       // pequeno backoff e 2ª tentativa
       await new Promise(r => setTimeout(r, CONFIG.timings.reconnectBackoffMs));
@@ -131,16 +225,23 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
         }
       } catch {
         setTyping(false);
-        // mensagem amigável + CTA
         pushMsg(
           'assistant',
           'Não consegui conectar agora. Por favor, tente novamente em instantes.\n\nSe preferir, fale conosco no WhatsApp: https://wa.me/5524998821709'
         );
+        // timers seguem ativos aguardando interação
       }
     }
-  }, [input, askAPI, pushMsg]);
+  }, [input, askAPI, pushMsg, resetIdleOnUserAction, clearIdleTimers]);
 
-  // ===== reconectar quando rede voltar / aba voltar ao foco
+  /* ===== Encerrar manualmente ===== */
+  const handleEndSession = useCallback(() => {
+    pushMsg('assistant', CONFIG.session.ended);
+    clearIdleTimers();
+    setTimeout(() => setOpen(false), 1200);
+  }, [pushMsg, clearIdleTimers]);
+
+  /* ===== reconectar quando rede voltar / aba voltar ao foco ===== */
   useEffect(() => {
     const onOnline = () => {
       if (requeue) {
@@ -165,7 +266,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     };
   }, [requeue, askAPI, pushMsg]);
 
-  // ===== scroll para a última mensagem
+  /* ===== scroll para a última mensagem ===== */
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
@@ -174,7 +275,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [msgs, typing]);
 
-  // ===== teclado móvel (visualViewport) → empurra para cima
+  /* ===== teclado móvel (visualViewport) → empurra para cima ===== */
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
@@ -186,7 +287,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     return () => vv.removeEventListener('resize', onResize);
   }, []);
 
-  // ===== estilos inline com safe-area
+  /* ===== estilos inline com safe-area ===== */
   const fabStyle: React.CSSProperties = {
     ...(position.endsWith('right')
       ? { right: 'max(16px, env(safe-area-inset-right))' }
@@ -260,13 +361,36 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
                 {typing ? 'Digitando…' : 'Online'}
               </div>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: 18 }}
-              aria-label="Fechar chat"
-            >
-              ✕
-            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Botão Encerrar (encerra a sessão explicitamente) */}
+              <button
+                onClick={handleEndSession}
+                style={{
+                  background: 'rgba(255,255,255,0.16)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  color: '#fff',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                }}
+                aria-label="Encerrar atendimento"
+                title="Encerrar atendimento"
+              >
+                Encerrar
+              </button>
+
+              {/* X apenas fecha a janela (sem mensagem extra) */}
+              <button
+                onClick={() => { clearIdleTimers(); setOpen(false); }}
+                style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: 18 }}
+                aria-label="Fechar chat"
+                title="Fechar"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {/* Mensagens */}
@@ -315,11 +439,15 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
           </div>
 
           {/* Input */}
-          <form onSubmit={sendMessage} style={{ display: 'flex', gap: 8, padding: 12, borderTop: `1px solid ${CONFIG.colors.border}`, background: CONFIG.colors.surface }}>
+          <form
+            onSubmit={(e) => { resetIdleOnUserAction(); return sendMessage(e); }}
+            style={{ display: 'flex', gap: 8, padding: 12, borderTop: `1px solid ${CONFIG.colors.border}`, background: CONFIG.colors.surface }}
+          >
             <input
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setInput(e.target.value); }}
+              onFocus={resetIdleOnUserAction}
               placeholder="Digite sua mensagem…"
               style={{
                 flex: 1,
