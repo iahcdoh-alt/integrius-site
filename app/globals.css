@@ -18,7 +18,7 @@
   :root {
     /* paleta escura coesa com o projeto */
     --background: 222.2 47.4% 11.2%; /* bg (#0F172A) */
-    --foreground: 210 40% 96.1%; /* texto claro (#E5E7EB aprox) */
+    --foreground: 210 40% 96.1%;    /* texto claro (#E5E7EB aprox) */
 
     --card: 222.2 47.4% 13%;
     --card-foreground: 210 40% 96.1%;
@@ -49,16 +49,48 @@
   }
 
   /* se um dia quiser tema claro, troque os valores do :root e use .dark para o escuro */
-  .dark {
+  .dark {}
+
+  /* ===== resets e correções de overflow ===== */
+
+  /* 1) Impede scroll lateral no site inteiro */
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
-  /* resets base */
-  * {
+  /* 2) Box sizing consistente (evita 100vw + padding virar overflow) */
+  *, *::before, *::after {
+    box-sizing: border-box;
     @apply border-border;
   }
+
+  /* 3) Mídias nunca estouram largura */
+  img, video, canvas, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* 4) Blocos estruturais não podem criar overflow horizontal */
+  main, header, footer, section, nav {
+    overflow-x: hidden;
+  }
+
+  /* Corpo padrão */
   body {
     @apply min-h-screen bg-background text-foreground antialiased;
   }
+
+  /* 5) Utilitário para elementos que usam 100vw:
+        100vw + padding/margem pode gerar 101–102vw → scrollbar.
+        Use esta classe em seções hero/banners se necessário. */
+  .w-100vw-fix { width: min(100%, 100vw); }
+
+  /* 6) Safe-area helpers (iOS notch/gestures) — úteis se precisar via classes */
+  .safe-pl { padding-left: max(1rem, env(safe-area-inset-left)); }
+  .safe-pr { padding-right: max(1rem, env(safe-area-inset-right)); }
+  .safe-pt { padding-top: max(1rem, env(safe-area-inset-top)); }
+  .safe-pb { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
 }
 
 /* ===== componentes extras ===== */

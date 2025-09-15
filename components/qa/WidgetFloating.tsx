@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-// =====================
-// Config (mantive seus valores)
-// =====================
+/* ======================
+   Configuração
+   ====================== */
 const CONFIG = {
   company: {
     name: 'Integrius',
@@ -12,22 +12,21 @@ const CONFIG = {
     email: 'ia.hcdoh@gmail.com',
   },
   assistantNames: [
-    'Sofia', 'Ana', 'Carla', 'Beatriz', 'Camila',
-    'Diana', 'Fernanda', 'Gabriela', 'Helena', 'Isabela',
-    ,'Paula', 'Georgia'
+    'Sofia','Ana','Carla','Beatriz','Camila',
+    'Diana','Fernanda','Gabriela','Helena','Isabela'
   ],
   timing: {
-    welcomeToAssistant: 5000,   // 5s
-    inactivityWarning: 180000,  // 3min
-    inactivityTimeout: 60000,   // +1min após aviso
-    typingDelay: 1200,          // meramente visual
-    requestTimeoutMs: 25000     // timeout de rede (25s)
+    welcomeToAssistant: 5000,   // 5s da tela de boas-vindas até a atendente
+    inactivityWarning: 180000,  // 3 min
+    inactivityTimeout: 60000,   // +1 min após o aviso
+    typingDelay: 1200,          // efeito visual
+    requestTimeoutMs: 25000,    // timeout do fetch
   },
   messages: {
     welcome: 'Olá! Bem-vindo à Integrius. Seu atendimento já vai começar.',
     inactivityWarning: 'Você ainda está aí? Se não responder em 1 minuto, vou encerrar nosso atendimento.',
     timeout: 'Por inatividade, estou encerrando nosso atendimento. Foi um prazer ajudar! Até logo!',
-    priceInquiry: 'Para informações sobre preços e orçamentos, preciso de seus dados para que nossos especialistas entrem em contato. Pode me informar nos campos acima?',
+    priceInquiry: 'Para informações sobre preços e orçamentos, preciso de seus dados para que nossos especialistas entrem em contato. Pode me informar?',
     fallbackError: 'Não consegui conectar agora. Você pode tentar novamente ou falar pelo WhatsApp 😉',
   },
   priceKeywords: ['preço','precos','valor','valores','custo','custos','investimento','orçamento','orcamento','quanto custa'],
@@ -42,9 +41,9 @@ const CONFIG = {
   },
 };
 
-// =====================
-// Tipos
-// =====================
+/* ======================
+   Tipos
+   ====================== */
 interface Message {
   id: string;
   text: string;
@@ -69,13 +68,13 @@ interface WidgetFloatingProps {
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
 }
 
-// =====================
-// Helpers
-// =====================
+/* ======================
+   Helpers
+   ====================== */
 const getRandomAssistantName = (): string => {
   const names = CONFIG.assistantNames;
   const idx = Math.floor(Math.random() * (names?.length ?? 0));
-  return names?.[idx] ?? "Sofia"; // fallback seguro
+  return names?.[idx] ?? 'Sofia'; // fallback seguro
 };
 
 const containsPriceKeywords = (t: string) =>
@@ -87,9 +86,9 @@ const containsFarewellKeywords = (t: string) =>
 const getAssistantGreeting = (name: string) =>
   `Oi! Eu sou a ${name}, sua atendente virtual da Integrius. Como posso ajudar você hoje?`;
 
-// =====================
-// Componente
-// =====================
+/* ======================
+   Componente
+   ====================== */
 export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloatingProps) {
   const [session, setSession] = useState<ChatSession | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -98,14 +97,15 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [leadForm, setLeadForm] = useState<LeadFormData>({ name: '', phone: '', email: '' });
 
-  // === Responsividade / teclado móvel ===
+  // responsividade / teclado
   const [bottomOffset, setBottomOffset] = useState(0);
   const [isNarrow, setIsNarrow] = useState(false);
 
-  // === Reconexão ===
+  // reconexão
   const [canReconnect, setCanReconnect] = useState(false);
   const pendingQuestionRef = useRef<string | null>(null);
 
+  // refs e timers
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -117,9 +117,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     'top-left'    : 'top-4 left-4',
   };
 
-  // =====================
-  // Mensagens utilitárias
-  // =====================
+  /* ===== mensagens utilitárias ===== */
   const addSystemMessage = useCallback((text: string, type: Message['type'] = 'system') => {
     const msg: Message = { id: String(Date.now()), text, isUser: false, timestamp: new Date(), type };
     setSession(prev => prev ? { ...prev, messages: [...prev.messages, msg], lastActivity: new Date() } : prev);
@@ -139,9 +137,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     } : prev);
   }, []);
 
-  // =====================
-  // Timers de inatividade
-  // =====================
+  /* ===== timers de inatividade ===== */
   const clearInactivity = () => {
     if (warningTimerRef.current) { clearTimeout(warningTimerRef.current); warningTimerRef.current = null; }
     if (inactivityTimerRef.current) { clearTimeout(inactivityTimerRef.current); inactivityTimerRef.current = null; }
@@ -150,11 +146,10 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
   const resetInactivityTimer = useCallback(() => {
     clearInactivity();
     if (session?.state === 'active') {
-      // Aviso
       warningTimerRef.current = setTimeout(() => {
         addSystemMessage(CONFIG.messages.inactivityWarning);
         setSession(prev => prev ? { ...prev, state: 'warning' } : prev);
-        // Timeout após aviso
+
         inactivityTimerRef.current = setTimeout(() => {
           addSystemMessage(CONFIG.messages.timeout);
           setSession(prev => prev ? { ...prev, state: 'timeout' } : prev);
@@ -164,9 +159,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     }
   }, [session?.state, addSystemMessage]);
 
-  // =====================
-  // Chamada ao backend /api/qa com timeout + retry
-  // =====================
+  /* ===== chamada ao backend com timeout + retry ===== */
   async function askBackend(question: string) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CONFIG.timing.requestTimeoutMs);
@@ -192,9 +185,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     throw lastErr;
   }
 
-  // =====================
-  // Envio de mensagem
-  // =====================
+  /* ===== envio de mensagem ===== */
   const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !session) return;
@@ -205,7 +196,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     addUserMessage(messageText);
     resetInactivityTimer();
 
-    // Despedidas → encerrar sem bater na IA
+    // despedidas → encerra sem bater na IA
     if (containsFarewellKeywords(messageText)) {
       const farewell = [
         'Foi um prazer atender você! Se precisar de mais alguma coisa sobre a Integrius, estarei sempre aqui. Tenha um ótimo dia!',
@@ -219,7 +210,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
       return;
     }
 
-    // Leads (preço/orçamento) → formulário
+    // orçamento/preço → lead form
     if (containsPriceKeywords(messageText)) {
       addSystemMessage(CONFIG.messages.priceInquiry, 'lead-request');
       setShowLeadForm(true);
@@ -228,7 +219,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
 
     // IA
     setIsTyping(true);
-    pendingQuestionRef.current = messageText; // guarda p/ reconectar
+    pendingQuestionRef.current = messageText;
     try {
       const data = await askBackend(messageText);
       setIsTyping(false);
@@ -238,18 +229,17 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
       if (data?.lowConfidence) {
         addAssistantMessage('Se preferir, posso te encaminhar para nosso WhatsApp para um atendimento humano.');
       }
-    } catch (err) {
+    } catch {
       setIsTyping(false);
-      addAssistantMessage(CONFIG.messages.fallbackError + ` ` +
-        `\n\n☎️ WhatsApp: https://wa.me/${CONFIG.company.whatsapp.replace('+','')}`);
-      // deixa pendente para reconectar
-      setCanReconnect(true);
+      addAssistantMessage(
+        CONFIG.messages.fallbackError +
+        `\n\n☎️ WhatsApp: https://wa.me/${CONFIG.company.whatsapp.replace('+','')}`
+      );
+      setCanReconnect(true); // deixamos pendente para tentar novamente
     }
   }, [inputText, session, addUserMessage, addAssistantMessage, resetInactivityTimer]);
 
-  // =====================
-  // Lead
-  // =====================
+  /* ===== lead ===== */
   const handleLeadSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!leadForm.name || (!leadForm.phone && !leadForm.email)) {
@@ -262,9 +252,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     setLeadForm({ name: '', phone: '', email: '' });
   }, [leadForm, addAssistantMessage]);
 
-  // =====================
-  // Sessão / boas-vindas
-  // =====================
+  /* ===== sessão / boas-vindas ===== */
   const startNewSession = useCallback(() => {
     const assistantName = getRandomAssistantName();
     const newSession: ChatSession = {
@@ -290,9 +278,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     }, 400);
   }, []);
 
-  // =====================
-  // Efeitos visuais/UX
-  // =====================
+  /* ===== efeitos ===== */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [session?.messages, isTyping]);
@@ -302,14 +288,15 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     return () => clearInactivity();
   }, [session?.state, resetInactivityTimer]);
 
-  // Responsividade: narrow & teclado móvel
+  // responsividade / tela estreita
   useEffect(() => {
-    const checkNarrow = () => setIsNarrow(window.innerWidth <= 380);
-    checkNarrow();
-    window.addEventListener('resize', checkNarrow);
-    return () => window.removeEventListener('resize', checkNarrow);
+    const check = () => setIsNarrow(window.innerWidth <= 380);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
 
+  // teclado móvel (visualViewport)
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
@@ -321,7 +308,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
     return () => vv.removeEventListener('resize', onResize);
   }, []);
 
-  // Reconectar quando voltar rede/aba
+  // reconectar quando voltar rede/aba
   useEffect(() => {
     const onOnline = () => setCanReconnect(true);
     const onVisible = () => { if (document.visibilityState === 'visible') setCanReconnect(true); };
@@ -346,31 +333,38 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
           if (data?.answer) addAssistantMessage(data.answer);
         } catch {
           setIsTyping(false);
-          // mantém mensagem de erro já mostrada
         }
       })();
     }
   }, [canReconnect, addAssistantMessage]);
 
-  // =====================
-  // Render
-  // =====================
+  /* ======================
+     Render
+     ====================== */
   return (
     <>
       {/* FAB */}
       {!isOpen && (
         <button
           onClick={startNewSession}
-          className={`fixed ${positionClasses[position]} z-50`}
+          className="fixed z-50"
           style={{
+            // respeita safe-area
+            ...(position.endsWith('right')
+              ? { right: 'max(16px, env(safe-area-inset-right))' }
+              : { left:  'max(16px, env(safe-area-inset-left))'  }),
+            ...(position.startsWith('bottom')
+              ? { bottom: 'max(16px, env(safe-area-inset-bottom))' }
+              : { top:    'max(16px, env(safe-area-inset-top))'    }),
+            width: 60, height: 60,
+            borderRadius: '50%',
             backgroundColor: CONFIG.colors.primary,
-            width: 60, height: 60, borderRadius: '50%',
             border: 'none', cursor: 'pointer',
             boxShadow: '0 10px 25px rgba(0, 102, 204, 0.15)',
             transition: 'all .25s ease',
           }}
           onMouseEnter={(e) => { const t = e.currentTarget; t.style.backgroundColor = CONFIG.colors.primaryHover; t.style.transform = 'scale(1.08)'; }}
-          onMouseLeave={(e) => { const t = e.currentTarget; t.style.backgroundColor = CONFIG.colors.primary; t.style.transform = 'scale(1)'; }}
+          onMouseLeave={(e) => { const t = e.currentTarget; t.style.backgroundColor = CONFIG.colors.primary;      t.style.transform = 'scale(1)'; }}
           aria-label="Abrir chat de suporte"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ margin: 'auto', display: 'block' }}>
@@ -382,12 +376,12 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
         </button>
       )}
 
-      {/* Janela */}
+      {/* Janela do chat */}
       {isOpen && session && (
         <div
-          className={`fixed ${isNarrow ? 'inset-0' : positionClasses[position]} z-50`}
+          className={`fixed z-50 ${isNarrow ? 'inset-0' : ''}`}
           style={{
-            width: isNarrow ? '100vw' : 'clamp(320px, 92vw, 420px)',
+            width:  isNarrow ? '100vw' : 'clamp(320px, 92vw, 420px)',
             height: isNarrow ? '100vh' : 'clamp(360px, 78vh, 86vh)',
             backgroundColor: CONFIG.colors.background,
             borderRadius: isNarrow ? 0 : 12,
@@ -395,9 +389,14 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            // empurra para cima quando teclado móvel sobe
+            // respeita safe-area quando não está em full
+            ...(!isNarrow && (position.endsWith('right')
+              ? { right: 'max(16px, env(safe-area-inset-right))' }
+              : { left:  'max(16px, env(safe-area-inset-left))'  })),
+            ...(!isNarrow && (position.startsWith('bottom')
+              ? { bottom: `calc(max(16px, env(safe-area-inset-bottom)) + ${bottomOffset}px)` }
+              : { top:    'max(16px, env(safe-area-inset-top))' })),
             paddingBottom: 'env(safe-area-inset-bottom)',
-            ...(position.startsWith('bottom') && !isNarrow ? { marginBottom: bottomOffset } : {}),
           }}
         >
           {/* Header */}
@@ -421,7 +420,7 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
             </button>
           </div>
 
-          {/* Lead form */}
+          {/* Form de Lead */}
           {showLeadForm && (
             <div style={{ padding: 16, backgroundColor: '#f8f9fa', borderBottom: `1px solid ${CONFIG.colors.border}` }}>
               <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: CONFIG.colors.text }}>Dados para contato:</h4>
@@ -508,7 +507,9 @@ export default function WidgetFloating({ position = 'bottom-right' }: WidgetFloa
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M15.854.146a.5.5 0 01.11.54l-5.819 14.547a.75.75 0 01-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 01.124-1.33L15.314.037a.5.5 0 01.54.11z"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M15.854.146a.5.5 0 01.11.54l-5.819 14.547a.75.75 0 01-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 01.124-1.33L15.314.037a.5.5 0 01.54.11z" />
+                  </svg>
                 </button>
               </form>
             </div>
